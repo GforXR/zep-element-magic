@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZEP 원소 조합 게임 — Quest & 도감</title>
+  <meta name="description" content="원소를 조합해 일상 속 물질을 만드는 퀘스트형 미니게임. ZEP 위젯/깃허브 페이지 호환 단일 HTML." />
+  <style>
+    :root{
+      --bg:#0f0a1f; --panel:#1a1240; --panel-2:#24145d; --accent:#9d7dff; --accent-2:#c9b8ff;
+      --text:#f5f3ff; --muted:#bfb8d9; --ok:#31d0aa; --warn:#ffb020; --err:#ff5c8a;
+      --shadow: 0 12px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Apple SD Gothic Neo, sans-serif; color:var(--text);
+      background: radial-gradient(1000px 600px at 80% -10%, #4b2cff44, transparent 60%),
+                  radial-gradient(800px 500px at -10% 110%, #2e1a8a44, transparent 60%), var(--bg);
+      display:grid; place-items:center;}
+    .app{width:min(1200px, 96vw); height:min(820px, 96vh); display:grid; grid-template-rows:auto 1fr auto; gap:12px}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; background:linear-gradient(180deg, #2a1a63 0%, #1b1240 100%);
+      border:1px solid #3c2c84; border-radius:18px; padding:14px 18px; box-shadow:var(--shadow)}
+    header .title{display:flex; align-items:center; gap:12px}
+    .logo{width:40px;height:40px;border-radius:12px; background:conic-gradient(from 0deg, #c9b8ff, #9d7dff, #7c6cff, #c9b8ff); box-shadow:inset 0 0 0 2px #00000040}
+    h1{font-size:18px; margin:0}
+    .controls{display:flex; gap:8px; flex-wrap:wrap}
+    button{appearance:none; border:none; cursor:pointer; color:var(--text); background:linear-gradient(180deg, var(--accent), #6c57f5);
+      border-radius:12px; padding:10px 14px; font-weight:700; letter-spacing:.2px; box-shadow:var(--shadow); transition: transform .06s ease, filter .2s ease; white-space:nowrap}
+    button.secondary{ background:linear-gradient(180deg, #34246f, #21174e); border:1px solid #4a3aa8; font-weight:600; color:var(--accent-2)}
+    button.flat{ background:#ffffff10; border:1px solid #ffffff25; color:var(--muted); font-weight:600}
+    button:active{ transform: translateY(1px) }
+    .main{display:grid; grid-template-columns: 330px 1fr 330px; gap:12px}
+    .panel{background:linear-gradient(180deg, var(--panel-2), var(--panel)); border:1px solid #3c2c84; border-radius:18px; padding:12px; box-shadow:var(--shadow)}
+    .elements{ display:grid; grid-template-rows:auto 1fr; gap:10px }
+    .search{ display:flex; gap:8px }
+    .search input{ flex:1; padding:10px 12px; border-radius:12px; border:1px solid #3c2c84; background:#110b2a; color:var(--text) }
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; overflow:auto; padding-right:3px }
+    .card{ background:linear-gradient(180deg,#2b1a6b,#21144f); border:1px solid #4a3aa8; border-radius:14px; padding:10px; text-align:center; display:grid; gap:4px; place-items:center; user-select:none }
+    .el-symbol{ font-size:22px; font-weight:900 }
+    .el-name{ font-size:12px; color:var(--muted) }
+    .card[draggable="true"]{ cursor:grab }
+    .lab{ display:grid; grid-template-rows:auto auto 1fr auto; gap:10px }
+    .statusbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .status{ display:flex; gap:10px; align-items:center; background:#120b2b; border:1px solid #3c2c84; padding:8px 10px; border-radius:12px}
+    .pill{ padding:2px 8px; border-radius:999px; font-size:12px; background:#2a1a63; border:1px solid #6c57f5; color:#dcd4ff }
+    .quest{ display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; background:#140c33; border:1px solid #3c2c84; border-radius:12px; padding:10px }
+    .quest .label{ font-weight:800 }
+    .dropzone{ height:260px; border-radius:16px; border:2px dashed #6a56f5; background:#150d35; display:grid; place-items:center; position:relative; overflow:hidden }
+    .cauldron{ width:220px; height:220px; border-radius:50%; background: radial-gradient(120px 80px at 50% 40%, #9d7dff22, transparent 60%), radial-gradient(70px 50px at 40% 30%, #ffffff08, transparent 60%), linear-gradient(180deg,#2a1a63,#140d33); border:2px solid #4a3aa8; display:grid; place-items:center; box-shadow: inset 0 10px 40px #00000080, 0 10px 30px #00000060 }
+    .slots{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:18px }
+    .slot{ width:84px; height:84px; border-radius:14px; background:#0d0922; border:2px solid #4a3aa8; display:grid; place-items:center; font-weight:800 }
+    .slot.filled{ background:#201453; border-color:#9d7dff }
+    .hint{ font-size:12px; color:var(--muted); text-align:center }
+    .lab-controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+    .output{ min-height:46px; display:flex; align-items:center; justify-content:center; gap:8px; border-radius:12px; padding:8px 10px; background:#120b2b; border:1px solid #3c2c84; color:var(--accent-2) }
+    .dex{ display:grid; grid-template-rows:auto auto 1fr; gap:10px }
+    .dex-list{ display:grid; grid-template-columns: 1fr; gap:8px; overflow:auto; padding-right:3px }
+    .found{ display:flex; align-items:center; gap:10px; background:#1b1243; border:1px solid #4a3aa8; border-radius:12px; padding:8px 10px }
+    @media (max-width: 980px){ .main{ grid-template-columns: 1fr; grid-auto-rows:auto } }
+    .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:16px; background:#110b2a; border:1px solid #3c2c84; color:var(--accent-2); padding:10px 14px; border-radius:12px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .25s ease }
+    .toast.show{ opacity:1 }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>ZEP 원소 조합 실험실</h1>
+          <div style="font-size:12px;color:var(--muted)">두 원소를 투입 → <span style="color:var(--accent-2)">조합</span> 버튼! 퀘스트를 완료하면 XP를 얻어요.</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="status"><span class="pill" id="level-pill">Lv.1</span><span class="pill" id="xp-pill">0 XP</span></div>
+        <button class="secondary" id="btn-share">현재 링크 공유</button>
+        <button class="flat" id="btn-reset">진행 초기화</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <section class="panel elements" aria-label="원소 목록">
+        <div class="search">
+          <input id="q" placeholder="원소 검색: H, 산소, copper…" />
+          <button class="secondary" id="btn-shuffle">섞기</button>
+        </div>
+        <div class="grid" id="element-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="panel lab" aria-label="연금 실험">
+        <div class="statusbar">
+          <div class="quest" id="quest">
+            <div>
+              <div class="label">현재 퀘스트</div>
+              <div id="quest-text" style="font-size:13px;color:var(--accent-2)">[시작] 버튼으로 퀘스트를 받으세요.</div>
+            </div>
+            <div style="display:flex; gap:8px">
+              <button class="secondary" id="btn-new-quest">시작</button>
+              <button class="flat" id="btn-skip-quest">건너뛰기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <div class="cauldron" aria-hidden="true"></div>
+          <div class="slots">
+            <div class="slot" id="slotA" data-slot="A" aria-label="투입 슬롯 A"></div>
+            <div class="slot" id="slotB" data-slot="B" aria-label="투입 슬롯 B"></div>
+          </div>
+        </div>
+        <div class="lab-controls">
+          <button id="btn-combine">조합하기</button>
+          <button class="secondary" id="btn-clear">슬롯 비우기</button>
+          <div class="hint">팁: 카드를 드래그해 슬롯에 놓거나, 카드를 두 번 클릭해도 투입됩니다.</div>
+        </div>
+        <div class="output" id="output" aria-live="polite">✨ 새 조합을 발견해보세요!</div>
+      </section>
+
+      <aside class="panel dex" aria-label="발견 도감">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-weight:800">발견 도감</div>
+          <span class="pill" id="found-count">0 / 0</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px">
+          <div class="pill" id="badge-count">배지 0</div>
+        </div>
+        <div class="dex-list" id="dex"></div>
+      </aside>
+    </div>
+
+    <footer style="text-align:center; font-size:12px; color:var(--muted)">Made for ZEP · GitHub Pages 호환 · 저장은 브라우저 LocalStorage 사용</footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const ELEMENTS = [
+      {sym:"H", name:"수소", color:"#ffd166"},
+      {sym:"O", name:"산소", color:"#9bf6ff"},
+      {sym:"C", name:"탄소", color:"#cfd1d6"},
+      {sym:"S", name:"황", color:"#ffe066"},
+      {sym:"Cl", name:"염소", color:"#baffc9"},
+      {sym:"Na", name:"나트륨", color:"#ffc6ff"},
+      {sym:"Fe", name:"철", color:"#d0d0d0"},
+      {sym:"Mg", name:"마그네슘", color:"#a0c4ff"},
+      {sym:"Cu", name:"구리", color:"#ffadad"},
+      {sym:"Zn", name:"아연", color:"#bde0fe"},
+      {sym:"Ca", name:"칼슘", color:"#e6f4b8"},
+      {sym:"Al", name:"알루미늄", color:"#d7e1f2"},
+      {sym:"N", name:"질소", color:"#cdeffd"},
+    ];
+
+    const RECIPES = {
+      "Cu+O":  {name:"산화구리",   formula:"CuO",   use:"가스 센서, 반도체, 촉매",            cats:["금속 산화물"]},
+      "Cl+Cu":  {name:"염화구리",   formula:"CuCl₂", use:"정수 공정, 수영장 소독제",            cats:["염 화합물", "일상"]},
+      "Cu+S":  {name:"황화구리",   formula:"CuS",   use:"태양전지, 발광페인트, 전극, 윤활유", cats:["황 화합물"]},
+      "H+O":   {name:"물",        formula:"H₂O",  use:"물",                               cats:["일상"]},
+      "C+O":   {name:"이산화탄소", formula:"CO₂",  use:"탄산음료, 소화기, 드라이아이스",     cats:["가스"]},
+      "Mg+O":  {name:"산화마그네슘", formula:"MgO", use:"제산제, 완하제, 비료, 내화 재료",     cats:["금속 산화물", "일상"]},
+      "Fe+O":  {name:"산화철",     formula:"Fe₂O₃", use:"페인트 색소(적갈색), 도로 색상",      cats:["금속 산화물", "일상"]},
+      "Cl+H":  {name:"염화수소",   formula:"HCl",  use:"화학산업, 제약, 식료품, 가죽 처리", cats:["산성"]},
+      "H+S":   {name:"황화수소",   formula:"H₂S",  use:"황산 제조 중간물질 (독성 주의)",      cats:["황 화합물", "가스"]},
+      "Na+Cl": {name:"소금",      formula:"NaCl", use:"조미료, 제설제",                   cats:["염 화합물", "일상"]},
+      "C+H":   {name:"메탄",      formula:"CH₄",  use:"천연가스 연료",                    cats:["가스"]},
+      "H+N":   {name:"암모니아",   formula:"NH₃",  use:"비료(하버-보슈), 세정제",             cats:["가스", "일상"]},
+      "Al+O":  {name:"산화알루미늄", formula:"Al₂O₃", use:"연마재, 내열재",                 cats:["금속 산화물"]},
+      "Ca+C":  {name:"탄산칼슘",    formula:"CaCO₃", use:"석회석, 분필, 제산제",             cats:["일상"]},
+      "Cu+Zn": {name:"황동(브라스)", formula:"Cu–Zn 합금", use:"악기, 장식, 기계부품",      cats:["합금", "일상"]},
+    };
+
+    const ALL_KEYS = Object.keys(RECIPES);
+
+    const QUEST_POOL = ALL_KEYS.map(k=>({
+      key:k,
+      text:`일상/산업에서 쓰이는 <strong>${RECIPES[k].name}</strong> (${RECIPES[k].use.split(',')[0]} 등)를 만들어 주세요.`,
+    }));
+
+    const state = {
+      slotA:null, slotB:null,
+      found: new Set(JSON.parse(localStorage.getItem("zep-alchemy-found")||"[]")),
+      xp: +(localStorage.getItem("zep-alchemy-xp")||0),
+      badges: new Set(JSON.parse(localStorage.getItem("zep-alchemy-badges")||"[]")),
+      quest: null,
+    };
+    const save = ()=>{
+      localStorage.setItem("zep-alchemy-found", JSON.stringify([...state.found]));
+      localStorage.setItem("zep-alchemy-xp", state.xp);
+      localStorage.setItem("zep-alchemy-badges", JSON.stringify([...state.badges]));
+    };
+
+    const byId = id=>document.getElementById(id);
+    const toast = (msg)=>{ const t=byId('toast'); t.innerHTML=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1600) };
+    const recipeKey = (a,b)=>{ const k=[a,b].sort().join('+'); return ALL_KEYS.includes(k)? k : null; };
+    const levelOf = xp => Math.floor(xp/100)+1;
+
+    function renderStatus(){
+      byId('level-pill').textContent = `Lv.${levelOf(state.xp)}`;
+      byId('xp-pill').textContent = `${state.xp} XP`;
+      byId('badge-count').textContent = `배지 ${state.badges.size}`;
+    }
+    function renderGrid(list=ELEMENTS){
+      const grid = byId('element-grid'); grid.innerHTML='';
+      list.forEach(el=> grid.appendChild(elCard(el)));
+    }
+    function elCard(el){
+      const d = document.createElement('div'); d.className='card'; d.tabIndex=0; d.setAttribute('role','button'); d.setAttribute('aria-label', `${el.name} (${el.sym}) 투입`);
+      d.draggable = true; d.style.background = `linear-gradient(180deg, ${tinyShade(el.color, -12)}, ${tinyShade(el.color, -28)})`; d.style.borderColor = tinyShade(el.color, -40);
+      d.innerHTML = `<div class="el-symbol">${el.sym}</div><div class="el-name">${el.name}</div>`;
+      d.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', el.sym); });
+      d.addEventListener('dblclick', ()=> smartPut(el.sym));
+      d.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ smartPut(el.sym); e.preventDefault(); }});
+      return d;
+    }
+    function tinyShade(hex, diff){ const c=hex.replace('#',''); const num=parseInt(c,16); let r=(num>>16)&255, g=(num>>8)&255, b=num&255; const f=v=>Math.max(0, Math.min(255, v+diff)); r=f(r); g=f(g); b=f(b); return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
+
+    const q = byId('q');
+    q.addEventListener('input', ()=>{ const v=q.value.trim().toLowerCase(); if(!v) return renderGrid(); renderGrid(ELEMENTS.filter(e=> e.sym.toLowerCase().includes(v) || e.name.toLowerCase().includes(v))); });
+    byId('btn-shuffle').addEventListener('click', ()=>{ const arr=[...ELEMENTS]; for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]] } renderGrid(arr); });
+
+    const slotA = byId('slotA'); const slotB=byId('slotB');
+    ;[slotA, slotB, byId('dropzone')].forEach(zone=>{ zone.addEventListener('dragover', e=>e.preventDefault()); zone.addEventListener('drop', e=>{ e.preventDefault(); const sym=e.dataTransfer.getData('text/plain'); smartPut(sym); }); });
+
+    function smartPut(sym){ if(!state.slotA){ setSlot('A', sym); return; } if(!state.slotB){ setSlot('B', sym); return; } setSlot('B', sym); }
+    function setSlot(which, sym){ state['slot'+which]=sym; const el=which==='A'?slotA:slotB; el.classList.add('filled'); el.textContent=sym; byId('output').textContent=`${state.slotA||'?'} + ${state.slotB||'?'} → 조합 준비`; }
+    function clearSlots(){ state.slotA=state.slotB=null; slotA.classList.remove('filled'); slotB.classList.remove('filled'); slotA.textContent=''; slotB.textContent=''; byId('output').textContent='슬롯을 채운 뒤 조합해보세요!'; }
+    byId('btn-clear').addEventListener('click', clearSlots);
+
+    document.getElementById('btn-combine').addEventListener('click', combine);
+    function combine(){
+      const {slotA:a, slotB:b} = state; if(!a || !b){ toast('두 슬롯을 채워주세요.'); return; }
+      const key = recipeKey(a,b);
+      if(!key){ byId('output').innerHTML = `❌ 조합 실패 · <span style="color:var(--muted)">${a} + ${b}</span> 는(은) 등록된 조합이 없어요.`; wiggle(byId('output')); return; }
+      const res = RECIPES[key];
+      const id = `${res.name} (${res.formula})`;
+      const isNew = !state.found.has(id);
+      state.found.add(id);
+      let gained = isNew ? 40 : 15;
+
+      if(state.quest && state.quest.key === key){
+        gained += 60;
+        toast(`🏆 퀘스트 완료! +${gained} XP`);
+        state.quest = null;
+        byId('quest-text').innerHTML = '완료! [시작]으로 새 퀘스트를 받으세요.';
+      }
+
+      state.xp += gained;
+      save();
+      renderStatus();
+      renderDex();
+      byId('output').innerHTML = `${isNew? '🎉 새 발견!':'✅ 조합 성공'} · <strong>${res.name}</strong> <span class="pill">${res.formula}</span> · <span class="pill">${res.use}</span> <span class="pill">+${gained} XP</span>`;
+      checkBadges(res);
+      clearSlots();
+    }
+
+    function wiggle(el){ el.style.transform='translateY(-1px)'; setTimeout(()=>el.style.transform='translateY(0)', 120); }
+
+    function renderDex(){
+      const dex = byId('dex'); dex.innerHTML='';
+      const arr = [...state.found].sort((a,b)=> a.localeCompare(b,'ko'));
+      arr.forEach(item=>{
+        const row=document.createElement('div'); row.className='found';
+        const m=item.match(/^(.*) \((.*)\)$/).slice(1);
+        const name=m[0], formula=m[1];
+        const rec = Object.values(RECIPES).find(r=>`${r.name} (${r.formula})`===item);
+        row.innerHTML = `<div style="font-weight:800">${name}</div><div class="pill">${formula}</div><div class="pill">${rec?.use||''}</div>`;
+        dex.appendChild(row);
+      });
+      byId('found-count').textContent = `${state.found.size} / ${Object.keys(RECIPES).length}`;
+    }
+
+    function checkBadges(res){
+      const categories = res.cats||[];
+      categories.forEach(cat=>{
+        const have = [...state.found].map(id=>{
+          const r = Object.values(RECIPES).find(x=>`${x.name} (${x.formula})`===id);
+          return r?.cats||[];
+        }).flat();
+        const countInCat = have.filter(c=>c===cat).length;
+        if(countInCat>=3 && !state.badges.has(cat)){
+          state.badges.add(cat); save(); renderStatus(); toast(`🪙 배지 획득: ${cat}`);
+        }
+      });
+    }
+
+    const btnNewQuest = byId('btn-new-quest');
+    const btnSkipQuest = byId('btn-skip-quest');
+    btnNewQuest.addEventListener('click', ()=>{
+      state.quest = QUEST_POOL[Math.floor(Math.random()*QUEST_POOL.length)];
+      byId('quest-text').innerHTML = state.quest.text;
+      toast('새 퀘스트 시작!');
+    });
+    btnSkipQuest.addEventListener('click', ()=>{ state.quest=null; byId('quest-text').textContent='[시작] 버튼으로 퀘스트를 받으세요.'; });
+
+    byId('btn-share').addEventListener('click', ()=>{
+      const params = new URLSearchParams();
+      if(state.found.size){ params.set('found', btoa(encodeURIComponent(JSON.stringify([...state.found])))); }
+      if(state.xp){ params.set('xp', String(state.xp)); }
+      if(state.badges.size){ params.set('bg', btoa(encodeURIComponent(JSON.stringify([...state.badges])))); }
+      const url = `${location.origin}${location.pathname}?${params.toString()}`;
+      navigator.clipboard?.writeText(url);
+      toast('현재 진행 링크를 클립보드에 복사했어요');
+    });
+
+    (function restoreFromQuery(){
+      const p = new URLSearchParams(location.search);
+      const f = p.get('found');
+      if(f){ try{ JSON.parse(decodeURIComponent(atob(f))).forEach(x=> state.found.add(x)); }catch(e){} }
+      const xp = +(p.get('xp')||0); if(xp) state.xp = xp;
+      const bg = p.get('bg'); if(bg){ try{ JSON.parse(decodeURIComponent(atob(bg))).forEach(x=> state.badges.add(x)); }catch(e){} }
+      save();
+    })();
+
+    renderGrid(); renderDex(); renderStatus();
+    byId('btn-reset').addEventListener('click', ()=>{
+      if(!confirm('모든 진행(도감, XP, 배지)을 삭제할까요?')) return;
+      state.found.clear(); state.xp=0; state.badges.clear(); state.quest=null; save(); renderDex(); renderStatus(); toast('초기화 완료');
+    });
+  </script>
+</body>
+</html>
